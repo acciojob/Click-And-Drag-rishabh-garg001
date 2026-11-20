@@ -74,18 +74,21 @@
   const container = document.querySelector(".items");
   const items = document.querySelectorAll(".item");
 
-  let active = null;     // drag hone wala cube
-  let startX = 0;        // mousedown par mouse position
+  let active = null;   // drag hone wala cube
+  let startX = 0;      // mousedown par mouse position
   let startY = 0;
-  let origX = 0;         // mousedown par cube ka left/top
+  let origX = 0;       // mousedown par cube ka left/top
   let origY = 0;
-  let baseLeft = 0;      // cube ki asli grid position
+  let baseLeft = 0;    // cube ki asli grid position
   let baseTop = 0;
-  let moved = false;     // mouse hila ya nahi
+  let moved = false;   // mouse hila ya nahi
 
   items.forEach(item => {
     item.dataset.x = 0;
     item.dataset.y = 0;
+    item.dataset.originalX = 0;
+    item.dataset.originalY = 0;
+    item.dataset.dragged = "false";
 
     // Click: drag mode on
     item.addEventListener("mousedown", (e) => {
@@ -99,6 +102,16 @@
       baseLeft = item.offsetLeft - origX;
       baseTop = item.offsetTop - origY;
       item.classList.add("active");
+    });
+
+    // Click without drag: cube apni position par hi rahe
+    item.addEventListener("click", () => {
+      if (item.dataset.dragged === "true") {
+        item.dataset.dragged = "false"; // drag hua tha, position mat badlo
+        return;
+      }
+      item.style.left = item.dataset.x + "px";
+      item.style.top = item.dataset.y + "px";
     });
   });
 
@@ -134,8 +147,12 @@
   document.addEventListener("mouseup", () => {
     if (!active) return;
 
-    if (!moved) {
-      // Sirf click hua, drag nahi: cube apni jagah hi rahe
+    if (moved) {
+      // Drag hua: cube nayi position par rahe
+      active.dataset.dragged = "true";
+    } else {
+      // Sirf click hua: cube apni purani position par rahe
+      active.dataset.dragged = "false";
       active.style.left = origX + "px";
       active.style.top = origY + "px";
       active.dataset.x = origX;
@@ -144,6 +161,7 @@
 
     active.classList.remove("active");
     active = null;
+    moved = false;
   });
 </script>
 
