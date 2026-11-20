@@ -4,6 +4,42 @@
   <meta charset="UTF-8">
   <title>Click and Drag</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .items {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, 100px);
+      grid-template-rows: repeat(5, 100px);
+      gap: 10px;
+      width: 560px;
+      height: 560px;
+      padding: 10px;
+      margin: 40px auto;
+      border: 4px solid #333;
+      box-sizing: border-box;
+      background: #fff;
+    }
+    .item {
+      position: relative;
+      left: 0;
+      top: 0;
+      width: 100px;
+      height: 100px;
+      background: #ffc600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: grab;
+      user-select: none;
+    }
+    .item.active {
+      cursor: grabbing;
+      z-index: 10;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+  </style>
 </head>
 <body>
   <div class="items">
@@ -35,67 +71,77 @@
   </div>
 
 <script>
-//Your code goes here 
-	// Your code here.
-const container = document.querySelector(".items");
+  const container = document.querySelector(".items");
   const items = document.querySelectorAll(".item");
 
-  // 1. Grid wali positions pehle save karo
-  const positions = [...items].map(item => ({
-    left: item.offsetLeft,
-    top: item.offsetTop,
-    width: item.offsetWidth,
-    height: item.offsetHeight
-  }));
+  let active = null;     // drag hone wala cube
+  let startX = 0;        // mousedown par mouse position
+  let startY = 0;
+  let origX = 0;         // mousedown par cube ka left/top
+  let origY = 0;
+  let baseLeft = 0;      // cube ki asli grid position
+  let baseTop = 0;
+  let moved = false;     // mouse hila ya nahi
 
-  // 2. Har cube ko usi jagah absolute position do
-  items.forEach((item, i) => {
-    item.style.position = "absolute";
-    item.style.left = positions[i].left + "px";
-    item.style.top = positions[i].top + "px";
-    item.style.width = positions[i].width + "px";
-    item.style.height = positions[i].height + "px";
-  });
-
-  let active = null;   // jo cube drag ho raha hai
-  let shiftX = 0;      // mouse aur cube ke corner ka gap
-  let shiftY = 0;
-  let zIndex = 1;
-
-  // 3. mousedown: cube select karo
   items.forEach(item => {
+    item.dataset.x = 0;
+    item.dataset.y = 0;
+
+    // Click: drag mode on
     item.addEventListener("mousedown", (e) => {
-      e.preventDefault(); // text select na ho
+      e.preventDefault();
       active = item;
-      const rect = item.getBoundingClientRect();
-      shiftX = e.clientX - rect.left;
-      shiftY = e.clientY - rect.top;
+      moved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      origX = parseFloat(item.dataset.x);
+      origY = parseFloat(item.dataset.y);
+      baseLeft = item.offsetLeft - origX;
+      baseTop = item.offsetTop - origY;
       item.classList.add("active");
-      item.style.zIndex = ++zIndex; // drag hone wala cube sabse upar
     });
   });
 
-  // 4. mousemove: cube ko mouse ke saath le jao
+  // Drag: cube mouse ke saath chale
   document.addEventListener("mousemove", (e) => {
     if (!active) return;
 
-    const box = container.getBoundingClientRect();
-    let x = e.clientX - box.left - container.clientLeft - shiftX;
-    let y = e.clientY - box.top - container.clientTop - shiftY;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // Thoda sa hilna drag nahi maana jayega
+    if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+    moved = true;
+
+    let x = origX + dx;
+    let y = origY + dy;
 
     // Boundary: container ke bahar na jaaye
-    const maxX = container.clientWidth - active.offsetWidth;
-    const maxY = container.clientHeight - active.offsetHeight;
-    x = Math.min(Math.max(x, 0), maxX);
-    y = Math.min(Math.max(y, 0), maxY);
+    const minX = -baseLeft;
+    const minY = -baseTop;
+    const maxX = container.clientWidth - active.offsetWidth - baseLeft;
+    const maxY = container.clientHeight - active.offsetHeight - baseTop;
+    x = Math.min(Math.max(x, minX), maxX);
+    y = Math.min(Math.max(y, minY), maxY);
 
     active.style.left = x + "px";
     active.style.top = y + "px";
+    active.dataset.x = x;
+    active.dataset.y = y;
   });
 
-  // 5. mouseup: cube wahin chhod do
+  // Drop: cube nayi jagah par ruk jaaye
   document.addEventListener("mouseup", () => {
     if (!active) return;
+
+    if (!moved) {
+      // Sirf click hua, drag nahi: cube apni jagah hi rahe
+      active.style.left = origX + "px";
+      active.style.top = origY + "px";
+      active.dataset.x = origX;
+      active.dataset.y = origY;
+    }
+
     active.classList.remove("active");
     active = null;
   });
